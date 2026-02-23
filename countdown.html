@@ -334,18 +334,18 @@ html, body, body * {
       <div class="label">ثانیه</div>
     </div>
     <div class="lock-unit">
-      <div class="wheel-window" id="hoursWheel">
-        <div class="wheel-digit current">00</div>
-        <div class="wheel-digit next">00</div>
-      </div>
-      <div class="label">ساعت</div>
-    </div>
-    <div class="lock-unit">
       <div class="wheel-window" id="minutesWheel">
         <div class="wheel-digit current">00</div>
         <div class="wheel-digit next">00</div>
       </div>
       <div class="label">دقیقه</div>
+    </div>
+    <div class="lock-unit">
+      <div class="wheel-window" id="hoursWheel">
+        <div class="wheel-digit current">00</div>
+        <div class="wheel-digit next">00</div>
+      </div>
+      <div class="label">ساعت</div>
     </div>
     <div class="lock-unit">
       <div class="wheel-window" id="daysWheel">
@@ -474,12 +474,20 @@ function pad(value) {
 
 function createWheel(id) {
   const root = document.getElementById(id);
+  const current = root.querySelector(".wheel-digit.current");
+  const next = root.querySelector(".wheel-digit.next");
+  current.style.transform = "translateY(0%)";
+  next.style.transform = "translateY(100%)";
+  current.style.transition = "none";
+  next.style.transition = "none";
   return {
     root,
-    current: root.querySelector(".wheel-digit.current"),
-    next: root.querySelector(".wheel-digit.next"),
+    current,
+    next,
     value: "00",
-    timer: null
+    timer: null,
+    rafA: null,
+    rafB: null
   };
 }
 
@@ -492,35 +500,51 @@ const wheels = {
 
 function setWheelValue(wheel, nextValue, instant) {
   if (wheel.value === nextValue) return;
-  if (wheel.timer) {
-    clearTimeout(wheel.timer);
-    wheel.value = wheel.next.textContent || wheel.value;
-    wheel.timer = null;
-  }
+  const finishWheel = (finalValue) => {
+    wheel.current.style.transition = "none";
+    wheel.next.style.transition = "none";
+    wheel.current.textContent = finalValue;
+    wheel.next.textContent = finalValue;
+    wheel.current.style.transform = "translateY(0%)";
+    wheel.next.style.transform = "translateY(100%)";
+    wheel.value = finalValue;
+    if (wheel.timer) {
+      clearTimeout(wheel.timer);
+      wheel.timer = null;
+    }
+  };
 
-  function resetWheelState(baseValue, incomingValue) {
-    wheel.root.classList.add("no-transition");
-    wheel.root.classList.remove("is-animating");
-    wheel.current.textContent = baseValue;
-    wheel.next.textContent = incomingValue;
-    // Force style commit so next transition always starts from below.
-    void wheel.root.offsetHeight;
-    wheel.root.classList.remove("no-transition");
-  }
+  if (wheel.rafA) cancelAnimationFrame(wheel.rafA);
+  if (wheel.rafB) cancelAnimationFrame(wheel.rafB);
+  if (wheel.timer) finishWheel(wheel.next.textContent || wheel.value);
 
   if (instant) {
-    resetWheelState(nextValue, nextValue);
-    wheel.value = nextValue;
+    finishWheel(nextValue);
     return;
   }
 
-  resetWheelState(wheel.value, nextValue);
-  wheel.root.classList.add("is-animating");
-  wheel.timer = setTimeout(() => {
-    resetWheelState(nextValue, nextValue);
-    wheel.value = nextValue;
-    wheel.timer = null;
-  }, 640);
+  wheel.current.style.transition = "none";
+  wheel.next.style.transition = "none";
+  wheel.current.textContent = wheel.value;
+  wheel.next.textContent = nextValue;
+  wheel.current.style.transform = "translateY(0%)";
+  wheel.next.style.transform = "translateY(100%)";
+
+  // Force browser to commit start position so animation is strictly upward.
+  void wheel.root.offsetHeight;
+
+  wheel.rafA = requestAnimationFrame(() => {
+    wheel.rafB = requestAnimationFrame(() => {
+      wheel.current.style.transition = "transform 620ms cubic-bezier(0.22, 0.8, 0.28, 1)";
+      wheel.next.style.transition = "transform 620ms cubic-bezier(0.22, 0.8, 0.28, 1)";
+      wheel.current.style.transform = "translateY(-100%)";
+      wheel.next.style.transform = "translateY(0%)";
+
+      const onDone = () => finishWheel(nextValue);
+      wheel.next.addEventListener("transitionend", onDone, { once: true });
+      wheel.timer = setTimeout(onDone, 700);
+    });
+  });
 }
 
 function renderCountdown(instant) {
