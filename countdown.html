@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Countdown</title>
 <style>
+@font-face {
+  font-family: "Modam Font";
+  src: local("Modam Font"), local("Modam");
+  font-display: swap;
+}
+
 :root {
   --panel: rgba(255, 255, 255, 0.94);
   --border: rgba(0, 0, 0, 0.08);
@@ -29,8 +35,12 @@ body {
   align-items: center;
   justify-content: center;
   color: var(--text-main);
-  font-family: "Monta", "Monta Font", "Inter", "Segoe UI", Tahoma, Arial, sans-serif;
+  font-family: "Modam Font", "Modam", "Inter", "Segoe UI", Tahoma, Arial, sans-serif;
   background: transparent;
+}
+
+html, body, body * {
+  font-family: "Modam Font", "Modam", "Inter", "Segoe UI", Tahoma, Arial, sans-serif !important;
 }
 
 .panel {
