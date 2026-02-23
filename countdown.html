@@ -326,21 +326,14 @@ html, body, body * {
   <p class="subtitle" id="subtitle">در حال بارگذاری...</p>
   <p class="alert" id="errorMessage">امکان خواندن این صفحه وبینار وجود ندارد.</p>
 
-  <div class="countdown-wrap">
-  <div class="countdown">
+  <div class="countdown-wrap" style="font-family: 'Modam Font', 'Modam', 'Inter', 'Segoe UI', Tahoma, Arial, sans-serif; font-weight: 400;">
+  <div class="countdown" style="flex-direction: column;">
     <div class="lock-unit">
-      <div class="wheel-window" id="daysWheel">
+      <div class="wheel-window" id="secondsWheel">
         <div class="wheel-digit current">00</div>
         <div class="wheel-digit next">00</div>
       </div>
-      <div class="label">روز</div>
-    </div>
-    <div class="lock-unit">
-      <div class="wheel-window" id="hoursWheel">
-        <div class="wheel-digit current">00</div>
-        <div class="wheel-digit next">00</div>
-      </div>
-      <div class="label">ساعت</div>
+      <div class="label">ثانیه</div>
     </div>
     <div class="lock-unit">
       <div class="wheel-window" id="minutesWheel">
@@ -350,11 +343,18 @@ html, body, body * {
       <div class="label">دقیقه</div>
     </div>
     <div class="lock-unit">
-      <div class="wheel-window" id="secondsWheel">
+      <div class="wheel-window" id="hoursWheel">
         <div class="wheel-digit current">00</div>
         <div class="wheel-digit next">00</div>
       </div>
-      <div class="label">ثانیه</div>
+      <div class="label">ساعت</div>
+    </div>
+    <div class="lock-unit">
+      <div class="wheel-window" id="daysWheel">
+        <div class="wheel-digit current">00</div>
+        <div class="wheel-digit next">00</div>
+      </div>
+      <div class="label">روز</div>
     </div>
   </div>
   </div>
