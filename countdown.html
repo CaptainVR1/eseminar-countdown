@@ -300,7 +300,21 @@ const subtitleEl = document.getElementById("subtitle");
 const errorMessageEl = document.getElementById("errorMessage");
 const allowedTargets = new Set(["w1", "w2", "w3", "w4"]);
 
-let rawTargetParam = new URLSearchParams(window.location.search).get("target");
+var urlParams = new URLSearchParams(window.location.search);
+var fixedTime = urlParams.get("t");
+if (fixedTime) {
+  var parsed = Date.parse(fixedTime);
+  if (!Number.isNaN(parsed)) {
+    target = parsed;
+    var d = new Date(target);
+    subtitleEl.innerText = d.toLocaleDateString("fa-IR", {
+      weekday: "long", year: "numeric", month: "long", day: "numeric",
+      hour: "2-digit", minute: "2-digit"
+    });
+  }
+}
+
+let rawTargetParam = urlParams.get("target");
 
 // Auto-detect: when embedded in eseminar.tv, use the parent page URL (e.g. panel/.../description)
 if (!rawTargetParam && typeof document.referrer === "string" && document.referrer) {
@@ -389,6 +403,10 @@ function renderTargetDate(ms) {
 
 async function refreshTarget() {
   errorMessageEl.classList.remove("show");
+  if (fixedTime && !Number.isNaN(Date.parse(fixedTime))) {
+    renderTargetDate(target);
+    return;
+  }
   if (isWebinarUrl) {
     try {
       const res = await fetch(targetJsonUrl + "?t=" + Date.now(), { cache: "no-store" });
