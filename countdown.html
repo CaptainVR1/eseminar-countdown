@@ -289,82 +289,6 @@ html, body, body * {
   flex-shrink: 0;
 }
 
-.gift-offer {
-  margin-top: 1rem;
-  width: min(520px, 100%);
-  margin-inline: auto;
-  padding: 1rem;
-  border-radius: 18px;
-  border: 1px solid rgba(234, 88, 12, 0.2);
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 247, 237, 0.84) 100%);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
-  text-align: center;
-}
-
-.gift-title {
-  margin: 0 0 0.55rem;
-  color: #c2410c;
-  font-size: 1.05rem;
-  font-weight: 900;
-  letter-spacing: 0.05em;
-}
-
-.gift-countdown {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
-  margin: 0;
-}
-
-.gift-unit {
-  text-align: center;
-}
-
-.gift-wheel-window {
-  position: relative;
-  height: clamp(3.2rem, 9vw, 4.2rem);
-  overflow: hidden;
-  border-radius: 14px;
-  border: 1px solid rgba(234, 88, 12, 0.25);
-  background: linear-gradient(180deg, #fff 0%, #fff7ed 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.95),
-    inset 0 -8px 14px rgba(234, 88, 12, 0.08),
-    0 8px 20px rgba(234, 88, 12, 0.12);
-}
-
-.gift-wheel-window::before {
-  content: "";
-  position: absolute;
-  inset: 50% 0 auto;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(234, 88, 12, 0.3), transparent);
-  transform: translateY(-0.5px);
-  z-index: 2;
-}
-
-.gift-wheel-window .wheel-digit {
-  font-size: clamp(1.9rem, 7vw, 2.9rem);
-  color: #c2410c;
-  text-shadow: 0 2px 10px rgba(234, 88, 12, 0.2);
-}
-
-.gift-label {
-  margin-top: 0.5rem;
-  color: #9a3412;
-  font-size: 0.72rem;
-  letter-spacing: 0.1em;
-}
-
-.gift-note {
-  margin: 0.7rem 0 0;
-  color: var(--text-main);
-  font-size: 0.95rem;
-  font-weight: 700;
-  line-height: 1.55;
-}
-
 @media (max-width: 640px) {
   .panel {
     padding: 1.1rem;
@@ -395,28 +319,6 @@ html, body, body * {
     border-radius: 14px;
   }
   .btn svg { width: 22px; height: 22px; }
-  .gift-offer {
-    margin-top: 0.85rem;
-    padding: 0.85rem 0.75rem;
-  }
-  .gift-title {
-    font-size: 0.95rem;
-  }
-  .gift-countdown {
-    gap: 0.55rem;
-  }
-  .gift-wheel-window {
-    height: clamp(3rem, 11vw, 3.8rem);
-  }
-  .gift-wheel-window .wheel-digit {
-    font-size: clamp(1.7rem, 8.5vw, 2.4rem);
-  }
-  .gift-label {
-    font-size: 0.68rem;
-  }
-  .gift-note {
-    font-size: 0.86rem;
-  }
 }
 </style>
 </head>
@@ -467,27 +369,6 @@ html, body, body * {
     </div>
   </div>
   </div>
-
-  <section class="gift-offer" style="max-width: 270px; margin: 20px auto 0 auto; padding: 1rem 0.5rem;" aria-live="polite" aria-label="شمارش معکوس هدیه محدود">
-    <h3 class="gift-title" style="font-size: 1rem; margin-bottom: 0.6rem;">هدیه ویژه محدود</h3>
-    <div class="gift-countdown" style="gap: 0.6rem;">
-      <div class="gift-unit">
-        <div class="gift-wheel-window" id="giftSecondsWheel" style="width: 34px; height: 40px;">
-          <div class="wheel-digit current" style="font-size: 1.08rem;">00</div>
-          <div class="wheel-digit next" style="font-size: 1.08rem;">00</div>
-        </div>
-        <div class="gift-label" style="font-size: 0.85rem;">ثانیه</div>
-      </div>
-      <div class="gift-unit">
-        <div class="gift-wheel-window" id="giftMinutesWheel" style="width: 34px; height: 40px;">
-          <div class="wheel-digit current" style="font-size: 1.08rem;">00</div>
-          <div class="wheel-digit next" style="font-size: 1.08rem;">00</div>
-        </div>
-        <div class="gift-label" style="font-size: 0.85rem;">دقیقه</div>
-      </div>
-    </div>
-    <!-- Text below the countdown has been removed. -->
-  </section>
 
   <div class="actions">
     <a class="btn" id="btnInstagram" href="#" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
@@ -755,26 +636,6 @@ async function refreshTarget() {
 
 renderCountdown(true);
 setInterval(() => renderCountdown(false), 1000);
-
-const giftWheels = {
-  minutes: createWheel("giftMinutesWheel"),
-  seconds: createWheel("giftSecondsWheel")
-};
-let giftRemainingSeconds = 240 + Math.floor(Math.random() * 61);
-
-function renderGiftCountdown(instant) {
-  const safe = Math.max(0, giftRemainingSeconds);
-  const m = Math.floor(safe / 60);
-  const s = safe % 60;
-  setWheelValue(giftWheels.minutes, pad(m), instant);
-  setWheelValue(giftWheels.seconds, pad(s), instant);
-}
-
-renderGiftCountdown(true);
-setInterval(() => {
-  giftRemainingSeconds = Math.max(0, giftRemainingSeconds - 1);
-  renderGiftCountdown(false);
-}, 1000);
 
 // Show a display value immediately; bot/API refresh can overwrite it.
 renderTargetDate(target);
