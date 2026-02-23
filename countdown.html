@@ -302,7 +302,7 @@ const allowedTargets = new Set(["w1", "w2", "w3", "w4"]);
 
 let rawTargetParam = new URLSearchParams(window.location.search).get("target");
 
-// Auto-detect: when embedded in eseminar.tv, use the parent page URL
+// Auto-detect: when embedded in eseminar.tv, use the parent page URL (e.g. panel/.../description)
 if (!rawTargetParam && typeof document.referrer === "string" && document.referrer) {
   try {
     const ref = new URL(document.referrer);
@@ -310,6 +310,26 @@ if (!rawTargetParam && typeof document.referrer === "string" && document.referre
       rawTargetParam = ref.origin + ref.pathname + ref.search;
     }
   } catch (_) {}
+}
+
+// Normalize panel/description URLs to the public webinar page URL for API
+function normalizeWebinarUrl(url) {
+  if (!url || !/^https?:\/\//i.test(url)) return url;
+  try {
+    const u = new URL(url);
+    if (!u.hostname.endsWith("eseminar.tv")) return url;
+    let path = u.pathname;
+    path = path.replace(/\/panel\//g, "/");
+    path = path.replace(/\/description.*$/, "");
+    path = path.replace(/\/$/, "") || "/";
+    return u.origin + path + u.search;
+  } catch (_) {
+    return url;
+  }
+}
+
+if (rawTargetParam && /^https?:\/\//i.test(rawTargetParam)) {
+  rawTargetParam = normalizeWebinarUrl(rawTargetParam);
 }
 
 const smartApi = new URLSearchParams(window.location.search).get("smartApi") || "/api/webinar-target";
