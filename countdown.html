@@ -294,18 +294,31 @@ html, body, body * {
     padding: 1.1rem;
   }
   .countdown {
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(0.55rem, 2.5vw, 0.85rem);
+    justify-content: initial;
+    padding: clamp(0.75rem, 3vw, 1rem);
   }
   .lock-unit {
-    flex: 1 1 calc(50% - 0.4rem);
+    flex: initial;
+    width: 100%;
     min-width: 0;
   }
   .actions {
-    gap: 0.5rem;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(0.5rem, 2.4vw, 0.75rem);
+    margin-top: 1rem;
   }
   .btn span { display: none; }
-  .btn { padding: 0.75rem 1rem; }
-  .btn svg { width: 26px; height: 26px; }
+  .btn {
+    width: 100%;
+    min-height: 50px;
+    padding: 0.65rem;
+    border-radius: 14px;
+  }
+  .btn svg { width: 22px; height: 22px; }
 }
 </style>
 </head>
