@@ -321,7 +321,7 @@ html, body, body * {
       <span class="subtitle-label">زمان تا شروع وبینار</span>
     </div>
   </div>
-  <p class="subtitle" id="subtitle">در حال بارگذاری...</p>
+  <p class="subtitle" id="subtitle"></p>
   <p class="alert" id="errorMessage">امکان خواندن این صفحه وبینار وجود ندارد.</p>
 
   <div class="countdown-wrap">
@@ -563,14 +563,19 @@ function renderCountdown(instant) {
 
 function renderTargetDate(ms) {
   const d = new Date(ms);
-  subtitleEl.innerText = d.toLocaleDateString("fa-IR", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit"
-  });
+  try {
+    subtitleEl.innerText = d.toLocaleDateString("fa-IR", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  } catch (_) {
+    // Never leave subtitle in a loading/empty state if locale formatting fails.
+    subtitleEl.innerText = d.toISOString().replace("T", " ").slice(0, 16);
+  }
 }
 
 async function refreshTarget() {
@@ -619,6 +624,8 @@ async function refreshTarget() {
 renderCountdown(true);
 setInterval(() => renderCountdown(false), 1000);
 
+// Show a display value immediately; bot/API refresh can overwrite it.
+renderTargetDate(target);
 refreshTarget();
 setInterval(refreshTarget, 5 * 60 * 1000);
 
