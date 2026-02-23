@@ -339,6 +339,38 @@ const targetJsonUrl = isWebinarUrl
   ? `${smartApi}?url=${encodeURIComponent(rawTargetParam)}`
   : `/targets/${targetId}.json`;
 
+var JALALI_MONTHS = { "فروردین":1,"اردیبهشت":2,"خرداد":3,"تیر":4,"مرداد":5,"شهریور":6,"مهر":7,"آبان":8,"آذر":9,"دی":10,"بهمن":11,"اسفند":12 };
+function jalaliToGregorian(jy, jm, jd) {
+  jy -= 979; jm -= 1; jd -= 1;
+  var jdn = 365*jy + Math.floor(jy/33)*8 + Math.floor((jy%33+3)/4) + (jm<6 ? jm*31 : 186+(jm-6)*30) + jd;
+  var gdn = jdn + 79;
+  var gy = 1600 + 400*Math.floor(gdn/146097);
+  gdn %= 146097;
+  var leap = true;
+  if (gdn >= 36525) { gdn--; gy += 100*Math.floor(gdn/36524); gdn %= 36524; if (gdn >= 365) gdn++; else leap = false; }
+  gy += 4*Math.floor(gdn/1461); gdn %= 1461;
+  if (gdn >= 366) { leap = false; gdn--; gy += Math.floor(gdn/365); gdn %= 365; }
+  var gd = gdn + 1;
+  var days = [31, leap?29:28, 31,30,31,30,31,31,30,31,30,31];
+  var gm = 0;
+  while (gm < 12 && gd > days[gm]) { gd -= days[gm]; gm++; }
+  return [gy, gm+1, gd];
+}
+function parseWebinarPageHtml(html, webinarUrl) {
+  var text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").replace(/&#?\w+;/g, "").trim();
+  var fa = "\u06f0\u06f1\u06f2\u06f3\u06f4\u06f5\u06f6\u06f7\u06f8\u06f9", ar = "\u0660\u0661\u0662\u0663\u0664\u0665\u0666\u0667\u0668\u0669";
+  for (var i = 0; i <= 9; i++) { text = text.split(fa[i]).join(i); text = text.split(ar[i]).join(i); }
+  text = text.replace(/\u064a/g, "\u06cc").replace(/\u0643/g, "\u06a9");
+  var m = text.match(/شروع\s+وبینار\s*(\d+)\s+(\S+)\s+(\d+)\s*-\s*ساعت\s*(\d{1,2}):(\d{2})/);
+  if (!m) return null;
+  var day = parseInt(m[1],10), monthName = m[2], year = parseInt(m[3],10), hour = parseInt(m[4],10), min = parseInt(m[5],10);
+  var month = JALALI_MONTHS[monthName];
+  if (!month) return null;
+  var g = jalaliToGregorian(year, month, day);
+  var iso = g[0]+"-"+String(g[1]).padStart(2,"0")+"-"+String(g[2]).padStart(2,"0")+"T"+String(hour).padStart(2,"0")+":"+String(min).padStart(2,"0")+":00+03:30";
+  return { target_iso: iso, webinar_url: webinarUrl };
+}
+
 function pad(value) {
   return String(value).padStart(2, "0");
 }
@@ -356,21 +388,42 @@ function renderTargetDate(ms) {
 }
 
 async function refreshTarget() {
-  try {
-    errorMessageEl.classList.remove("show");
-    const res = await fetch(targetJsonUrl + "?t=" + Date.now(), { cache: "no-store" });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-
-    const data = await res.json();
-    const next = Date.parse(data.target_iso);
-    if (Number.isNaN(next)) throw new Error("Invalid target_iso");
-
-    target = next;
-    renderTargetDate(target);
-  } catch (err) {
-    if (!isWebinarUrl) errorMessageEl.classList.add("show");
-    renderTargetDate(target);
+  errorMessageEl.classList.remove("show");
+  if (isWebinarUrl) {
+    try {
+      const res = await fetch(targetJsonUrl + "?t=" + Date.now(), { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        const next = Date.parse(data.target_iso);
+        if (!Number.isNaN(next)) { target = next; renderTargetDate(target); return; }
+      }
+    } catch (_) {}
+    try {
+      var proxy = "https://api.allorigins.win/raw?url=" + encodeURIComponent(rawTargetParam);
+      const r = await fetch(proxy, { cache: "no-store" });
+      var html = await r.text();
+      var data = parseWebinarPageHtml(html, rawTargetParam);
+      if (data && data.target_iso) {
+        var next = Date.parse(data.target_iso);
+        if (!Number.isNaN(next)) { target = next; renderTargetDate(target); return; }
+      }
+    } catch (_) {}
+  } else {
+    try {
+      const res = await fetch(targetJsonUrl + "?t=" + Date.now(), { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      const next = Date.parse(data.target_iso);
+      if (Number.isNaN(next)) throw new Error("Invalid target_iso");
+      target = next;
+      renderTargetDate(target);
+    } catch (err) {
+      errorMessageEl.classList.add("show");
+      renderTargetDate(target);
+    }
+    return;
   }
+  renderTargetDate(target);
 }
 
 setInterval(() => {
