@@ -226,6 +226,10 @@ html, body, body * {
   transition: transform 620ms cubic-bezier(0.22, 0.8, 0.28, 1);
 }
 
+.wheel-window.no-transition .wheel-digit {
+  transition: none !important;
+}
+
 .wheel-digit.next {
   transform: translateY(100%);
 }
@@ -490,21 +494,30 @@ function setWheelValue(wheel, nextValue, instant) {
   if (wheel.value === nextValue) return;
   if (wheel.timer) {
     clearTimeout(wheel.timer);
+    wheel.value = wheel.next.textContent || wheel.value;
     wheel.timer = null;
   }
-  if (instant) {
+
+  function resetWheelState(baseValue, incomingValue) {
+    wheel.root.classList.add("no-transition");
     wheel.root.classList.remove("is-animating");
-    wheel.current.textContent = nextValue;
-    wheel.next.textContent = nextValue;
+    wheel.current.textContent = baseValue;
+    wheel.next.textContent = incomingValue;
+    // Force style commit so next transition always starts from below.
+    void wheel.root.offsetHeight;
+    wheel.root.classList.remove("no-transition");
+  }
+
+  if (instant) {
+    resetWheelState(nextValue, nextValue);
     wheel.value = nextValue;
     return;
   }
-  wheel.next.textContent = nextValue;
+
+  resetWheelState(wheel.value, nextValue);
   wheel.root.classList.add("is-animating");
   wheel.timer = setTimeout(() => {
-    wheel.root.classList.remove("is-animating");
-    wheel.current.textContent = nextValue;
-    wheel.next.textContent = nextValue;
+    resetWheelState(nextValue, nextValue);
     wheel.value = nextValue;
     wheel.timer = null;
   }, 640);
