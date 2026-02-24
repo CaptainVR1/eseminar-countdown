@@ -277,7 +277,7 @@ html, body, body * {
 .desc-title {
   margin: 0 0 0.45rem;
   font-size: 0.92rem;
-  font-weight: 800;
+  font-weight: 400;
   color: var(--text-main);
   letter-spacing: 0.02em;
 }
@@ -471,25 +471,17 @@ function startFastTyping(targetEl, text) {
     return;
   }
 
-  // Very fast typing, no typos.
+  // Very fast typing, no typos. Always finishes within ~2 seconds.
   targetEl.textContent = "";
-  const charsPerSecond = 120;
-  const charsPerMs = charsPerSecond / 1000;
-  let idx = 0;
-  let last = performance.now();
-  let carry = 0;
+  const durationMs = 2000;
+  const startedAt = performance.now();
+  const n = text.length;
 
   function step(now) {
-    const dt = Math.min(64, now - last);
-    last = now;
-    carry += dt * charsPerMs;
-    const take = Math.max(1, Math.floor(carry));
-    if (take > 0) carry -= take;
-    idx = Math.min(text.length, idx + take);
+    const t = Math.min(1, (now - startedAt) / durationMs);
+    const idx = Math.max(1, Math.floor(n * t));
     targetEl.textContent = text.slice(0, idx);
-    if (idx < text.length) {
-      requestAnimationFrame(step);
-    }
+    if (t < 1) requestAnimationFrame(step);
   }
 
   requestAnimationFrame(step);
@@ -694,7 +686,6 @@ async function refreshTarget() {
       if (res.ok) {
         const data = await res.json();
         const next = Date.parse(data.target_iso);
-        if (data && data.description) setDescriptionText(data.description);
         if (!Number.isNaN(next)) { target = next; renderTargetDate(target); return; }
       }
     } catch (_) {}
@@ -715,7 +706,6 @@ async function refreshTarget() {
       const data = await res.json();
       const next = Date.parse(data.target_iso);
       if (Number.isNaN(next)) throw new Error("Invalid target_iso");
-      if (data && data.description) setDescriptionText(data.description);
       target = next;
       renderTargetDate(target);
     } catch (err) {
