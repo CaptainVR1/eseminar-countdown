@@ -266,30 +266,6 @@ html, body, body * {
   gap: 0.65rem;
 }
 
-.desc-section {
-  margin-top: 1.2rem;
-  padding: 0.95rem 1rem;
-  border: 1px solid rgba(15, 23, 42, 0.1);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.55);
-}
-
-.desc-title {
-  margin: 0 0 0.45rem;
-  font-size: 0.92rem;
-  font-weight: 400;
-  color: var(--text-main);
-  letter-spacing: 0.02em;
-}
-
-.desc-body {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 0.92rem;
-  line-height: 1.65;
-  white-space: pre-wrap;
-}
-
 .btn {
   display: inline-flex;
   align-items: center;
@@ -425,24 +401,16 @@ html, body, body * {
     </a>
   </div>
 
-  <section class="desc-section" id="descSection" style="display:none;">
-    <div class="desc-title">توضیحات وبینار</div>
-    <p class="desc-body" id="webinarDesc"></p>
-  </section>
 </main>
 
 <script>
 let target = new Date("2026-03-01T00:00:00Z").getTime();
 const subtitleEl = document.getElementById("subtitle");
 const errorMessageEl = document.getElementById("errorMessage");
-const descSectionEl = document.getElementById("descSection");
-const descEl = document.getElementById("webinarDesc");
 const allowedTargets = new Set(["w1", "w2", "w3", "w4"]);
 
 var urlParams = new URLSearchParams(window.location.search);
 var fixedTime = urlParams.get("t");
-var fixedDesc64 = urlParams.get("desc64") || urlParams.get("d64");
-var fixedDesc = urlParams.get("desc") || urlParams.get("d");
 if (fixedTime) {
   var parsed = Date.parse(fixedTime);
   if (!Number.isNaN(parsed)) {
@@ -453,69 +421,6 @@ if (fixedTime) {
       hour: "2-digit", minute: "2-digit"
     });
   }
-}
-
-function decodeBase64UrlToText(b64url) {
-  try {
-    b64url = (b64url || "").toString().trim();
-    if (!b64url) return "";
-    let b64 = b64url.replace(/-/g, "+").replace(/_/g, "/");
-    while (b64.length % 4) b64 += "=";
-    const bin = atob(b64);
-    const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    if (typeof TextDecoder !== "undefined") {
-      return new TextDecoder("utf-8").decode(bytes);
-    }
-    // Fallback (older browsers)
-    let s = "";
-    for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
-    return decodeURIComponent(escape(s));
-  } catch (_) {
-    return "";
-  }
-}
-
-function setDescriptionText(value) {
-  if (!descSectionEl || !descEl) return;
-  value = (value || "").toString().trim();
-  if (!value) return;
-  descSectionEl.style.display = "block";
-  startFastTyping(descEl, value);
-}
-
-function startFastTyping(targetEl, text) {
-  const reduceMotion = typeof window !== "undefined"
-    && window.matchMedia
-    && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (reduceMotion) {
-    targetEl.textContent = text;
-    return;
-  }
-
-  // Very fast typing, no typos. Always finishes within ~4 seconds.
-  targetEl.textContent = "";
-  const durationMs = 4000;
-  const startedAt = performance.now();
-  const n = text.length;
-
-  function step(now) {
-    const t = Math.min(1, (now - startedAt) / durationMs);
-    const idx = Math.max(1, Math.floor(n * t));
-    targetEl.textContent = text.slice(0, idx);
-    if (t < 1) requestAnimationFrame(step);
-  }
-
-  requestAnimationFrame(step);
-}
-
-// If Telegram bot provided a description in the URL, show it immediately.
-if (fixedDesc64) {
-  setDescriptionText(decodeBase64UrlToText(fixedDesc64));
-} else if (fixedDesc) {
-  // URLSearchParams already decodes percent-encoding; decodeURIComponent is best-effort.
-  try { fixedDesc = decodeURIComponent(fixedDesc); } catch (_) {}
-  setDescriptionText(fixedDesc);
 }
 
 let rawTargetParam = urlParams.get("target");
