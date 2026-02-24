@@ -493,9 +493,9 @@ function startFastTyping(targetEl, text) {
     return;
   }
 
-  // Very fast typing, no typos. Always finishes within ~2 seconds.
+  // Very fast typing, no typos. Always finishes within ~4 seconds.
   targetEl.textContent = "";
-  const durationMs = 2000;
+  const durationMs = 4000;
   const startedAt = performance.now();
   const n = text.length;
 
