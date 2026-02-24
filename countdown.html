@@ -656,41 +656,87 @@ setInterval(refreshTarget, 5 * 60 * 1000);
     return new Promise((r) => setTimeout(r, ms));
   }
 
-  async function typeTitle() {
+  function getNextTypoMode() {
+    const modes = ["wrong", "missing", "extra"];
+    let last = null;
+    try { last = localStorage.getItem("titleTypoMode"); } catch (_) {}
+    const options = last ? modes.filter((m) => m !== last) : modes.slice();
+    const next = options[Math.floor(Math.random() * options.length)];
+    try { localStorage.setItem("titleTypoMode", next); } catch (_) {}
+    return next;
+  }
+
+  async function typeChars(text, delayMs) {
+    for (const ch of text) {
+      titleTextEl.textContent += ch;
+      await sleep(delayMs);
+    }
+  }
+
+  async function backspace(count, delayMs) {
+    for (let i = 0; i < count; i++) {
+      titleTextEl.textContent = titleTextEl.textContent.slice(0, -1);
+      await sleep(delayMs);
+    }
+  }
+
+  async function typeTitleWhenSeen() {
     if (reduceMotion) {
       titleTextEl.textContent = base;
       el.textContent = "...";
       return;
     }
 
-    // Medium speed typing with small human-like mistakes & fixes.
-    // We keep this frame-based (not per-character) to limit rapid edits.
-    const frames = [
-      "د",
-      "در",
-      "در ",
-      "در م",
-      "در مس",
-      "در مسی",
-      "در مسیر",
-      "در مسیر ",
-      "در مسیر ت",
-      "در مسیر تو",
-      "در مسیر توس",
-      "در مسیر توسغ",     // wrong letter (غ)
-      "در مسیر توس",      // backspace
-      "در مسیر توسع",     // missing letter (ه)
-      "در مسیر توسعه",    // fixed
-      "در مسیر توسعهه",   // extra letter
-      "در مسیر توسعه",    // backspace fix
-      base,
-    ];
+    // Slower typing (requested) with one typo per load.
+    // Typo mode rotates (stored in localStorage) so it changes style each refresh.
+    const charDelay = 260;
+    const wordPause = 260;
+    const fixPause = 340;
+    const bsDelay = 140;
+
+    // Start only when the panel is visible to the user.
+    await waitUntilPanelVisible();
+    // Give the first countdown render a moment to paint.
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
     titleTextEl.textContent = "";
-    for (const f of frames) {
-      titleTextEl.textContent = f;
-      await sleep(220);
+
+    const mode = getNextTypoMode();
+
+    if (mode === "extra") {
+      // Extra letter in "باشید": type "باشیدی" then delete the last "ی".
+      // This guarantees we land on the correct "باشید" (not "باشیی").
+      const idx = base.indexOf("باشید");
+      const prefix = base.slice(0, idx);
+      const rest = base.slice(idx + "باشید".length);
+      await typeChars(prefix, charDelay);
+      await sleep(wordPause);
+      await typeChars("باشیدی", charDelay);
+      await sleep(fixPause);
+      await backspace(1, bsDelay);
+      await typeChars(rest, charDelay);
+      // Final safety: ensure we always finish on the correct phrase.
+      titleTextEl.textContent = base;
+      return;
     }
+
+    // wrong/missing: apply on "توسعه" so user sees the fix before "باشید" types in.
+    const idx = base.indexOf("توسعه");
+    const prefix = base.slice(0, idx);
+    const rest = base.slice(idx + "توسعه".length);
+    const typoWord = (mode === "wrong") ? "توسغه" : "توسه";
+    const fixWord = "توسعه";
+
+    await typeChars(prefix, charDelay);
+    await sleep(wordPause);
+    await typeChars(typoWord, charDelay);
+    await sleep(fixPause);
+    await backspace(typoWord.length, bsDelay);
+    await typeChars(fixWord, charDelay);
+    await sleep(wordPause);
+    await typeChars(rest, charDelay);
+    // Final safety: ensure we always finish on the correct phrase.
+    titleTextEl.textContent = base;
   }
 
   const steps = [".", "..", "..."];
@@ -700,7 +746,52 @@ setInterval(refreshTarget, 5 * 60 * 1000);
     el.textContent = steps[i];
   }, 500);
 
-  typeTitle().catch(function () {
+  function waitUntilPanelVisible() {
+    // In an iframe this usually resolves immediately, but it avoids typing before paint.
+    return new Promise((resolve) => {
+      const panel = document.querySelector(".panel");
+      if (!panel) return resolve();
+
+      const done = () => {
+        if (cleanup.called) return;
+        cleanup.called = true;
+        document.removeEventListener("visibilitychange", onVis);
+        if (observer) observer.disconnect();
+        resolve();
+      };
+      const cleanup = { called: false };
+
+      function onVis() {
+        if (document.visibilityState === "visible") {
+          // Don't resolve solely on visibility; wait for intersection too if possible.
+          if (!("IntersectionObserver" in window)) done();
+        }
+      }
+
+      let observer = null;
+      if ("IntersectionObserver" in window) {
+        observer = new IntersectionObserver((entries) => {
+          const entry = entries && entries[0];
+          if (!entry) return;
+          if (document.visibilityState === "visible" && entry.isIntersecting && entry.intersectionRatio >= 0.4) {
+            done();
+          }
+        }, { threshold: [0, 0.25, 0.4, 0.75, 1] });
+        observer.observe(panel);
+      }
+
+      // Fast path.
+      if (document.visibilityState === "visible") {
+        if (!observer) return done();
+      }
+      document.addEventListener("visibilitychange", onVis);
+
+      // Safety: never wait forever.
+      setTimeout(done, 2500);
+    });
+  }
+
+  typeTitleWhenSeen().catch(function () {
     // Never block the rest of the page if the animation fails.
     titleTextEl.textContent = base;
   });
