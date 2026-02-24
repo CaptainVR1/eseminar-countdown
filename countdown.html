@@ -330,7 +330,7 @@ html, body, body * {
       <span class="logo-fallback" id="logoFallback">LOGO</span>
     </div>
     <div class="brand-meta">
-      <div class="hero-title" style="font-weight: 360; font-size: 1.45rem;">در مسیر توسعه باشید<span class="dot-holder" id="titleDots">.</span></div>
+      <div class="hero-title" style="font-weight: 360; font-size: 1.45rem;"><span id="titleText"></span><span class="dot-holder" id="titleDots">.</span></div>
       <span class="subtitle-label">زمان تا شروع وبینار</span>
     </div>
   </div>
@@ -643,14 +643,72 @@ refreshTarget();
 setInterval(refreshTarget, 5 * 60 * 1000);
 
 (function () {
+  const titleTextEl = document.getElementById("titleText");
   const el = document.getElementById("titleDots");
-  if (!el) return;
+  if (!el || !titleTextEl) return;
+
+  const base = "در مسیر توسعه باشید";
+  const reduceMotion = typeof window !== "undefined"
+    && window.matchMedia
+    && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function sleep(ms) {
+    return new Promise((r) => setTimeout(r, ms));
+  }
+
+  async function typeTitle() {
+    if (reduceMotion) {
+      titleTextEl.textContent = base;
+      el.textContent = "...";
+      return;
+    }
+
+    // Medium speed typing with small human-like mistakes & fixes.
+    // We keep this frame-based (not per-character) to limit rapid edits.
+    const frames = [
+      "د",
+      "در",
+      "در ",
+      "در م",
+      "در مس",
+      "در مسی",
+      "در مسیر",
+      "در مسیر ",
+      "در مسیر ت",
+      "در مسیر تو",
+      "در مسیر توس",
+      "در مسیر توسغ",     // wrong letter (غ)
+      "در مسیر توس",      // backspace
+      "در مسیر توسع",     // missing letter (ه)
+      "در مسیر توسعه",    // fixed
+      "در مسیر توسعهه",   // extra letter
+      "در مسیر توسعه",    // backspace fix
+      base,
+    ];
+
+    titleTextEl.textContent = "";
+    for (const f of frames) {
+      titleTextEl.textContent = f;
+      await sleep(220);
+    }
+  }
+
   const steps = [".", "..", "..."];
   let i = 0;
-  setInterval(function () {
+  const dotsTimer = setInterval(function () {
     i = (i + 1) % steps.length;
     el.textContent = steps[i];
   }, 500);
+
+  typeTitle().catch(function () {
+    // Never block the rest of the page if the animation fails.
+    titleTextEl.textContent = base;
+  });
+
+  // Ensure the dots timer doesn't run for reduced-motion users.
+  if (reduceMotion) {
+    clearInterval(dotsTimer);
+  }
 })();
 
 const logoEl = document.getElementById("brandLogo");
