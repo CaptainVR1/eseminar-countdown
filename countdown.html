@@ -266,6 +266,30 @@ html, body, body * {
   gap: 0.65rem;
 }
 
+.desc-section {
+  margin-top: 1.2rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.desc-title {
+  margin: 0 0 0.45rem;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: 0.02em;
+}
+
+.desc-body {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -400,16 +424,24 @@ html, body, body * {
       <span>LinkedIn</span>
     </a>
   </div>
+
+  <section class="desc-section" id="descSection" style="display:none;">
+    <div class="desc-title">توضیحات وبینار</div>
+    <p class="desc-body" id="webinarDesc"></p>
+  </section>
 </main>
 
 <script>
 let target = new Date("2026-03-01T00:00:00Z").getTime();
 const subtitleEl = document.getElementById("subtitle");
 const errorMessageEl = document.getElementById("errorMessage");
+const descSectionEl = document.getElementById("descSection");
+const descEl = document.getElementById("webinarDesc");
 const allowedTargets = new Set(["w1", "w2", "w3", "w4"]);
 
 var urlParams = new URLSearchParams(window.location.search);
 var fixedTime = urlParams.get("t");
+var fixedDesc = urlParams.get("desc") || urlParams.get("d");
 if (fixedTime) {
   var parsed = Date.parse(fixedTime);
   if (!Number.isNaN(parsed)) {
@@ -420,6 +452,53 @@ if (fixedTime) {
       hour: "2-digit", minute: "2-digit"
     });
   }
+}
+
+function setDescriptionText(value) {
+  if (!descSectionEl || !descEl) return;
+  value = (value || "").toString().trim();
+  if (!value) return;
+  descSectionEl.style.display = "block";
+  startFastTyping(descEl, value);
+}
+
+function startFastTyping(targetEl, text) {
+  const reduceMotion = typeof window !== "undefined"
+    && window.matchMedia
+    && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduceMotion) {
+    targetEl.textContent = text;
+    return;
+  }
+
+  // Very fast typing, no typos.
+  targetEl.textContent = "";
+  const charsPerSecond = 120;
+  const charsPerMs = charsPerSecond / 1000;
+  let idx = 0;
+  let last = performance.now();
+  let carry = 0;
+
+  function step(now) {
+    const dt = Math.min(64, now - last);
+    last = now;
+    carry += dt * charsPerMs;
+    const take = Math.max(1, Math.floor(carry));
+    if (take > 0) carry -= take;
+    idx = Math.min(text.length, idx + take);
+    targetEl.textContent = text.slice(0, idx);
+    if (idx < text.length) {
+      requestAnimationFrame(step);
+    }
+  }
+
+  requestAnimationFrame(step);
+}
+
+// If Telegram bot provided a description in the URL, show it immediately.
+if (fixedDesc) {
+  try { fixedDesc = decodeURIComponent(fixedDesc); } catch (_) {}
+  setDescriptionText(fixedDesc);
 }
 
 let rawTargetParam = urlParams.get("target");
@@ -615,6 +694,7 @@ async function refreshTarget() {
       if (res.ok) {
         const data = await res.json();
         const next = Date.parse(data.target_iso);
+        if (data && data.description) setDescriptionText(data.description);
         if (!Number.isNaN(next)) { target = next; renderTargetDate(target); return; }
       }
     } catch (_) {}
@@ -635,6 +715,7 @@ async function refreshTarget() {
       const data = await res.json();
       const next = Date.parse(data.target_iso);
       if (Number.isNaN(next)) throw new Error("Invalid target_iso");
+      if (data && data.description) setDescriptionText(data.description);
       target = next;
       renderTargetDate(target);
     } catch (err) {
