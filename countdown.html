@@ -113,14 +113,22 @@ html, body, body * {
   display: flex;
   align-items: center;
   gap: 0.2rem;
+  flex-wrap: wrap;
 }
 
 .brand-meta .hero-title .dot-holder {
   display: inline-block;
-  min-width: 1.2em;
+  min-width: 1.6em;
   text-align: right;
   font-weight: 400;
   opacity: 0.9;
+}
+
+.brand-meta .hero-title .title-tail {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
 }
 
 .brand-meta span.subtitle-label {
@@ -331,7 +339,10 @@ html, body, body * {
       <span class="logo-fallback" id="logoFallback">LOGO</span>
     </div>
     <div class="brand-meta">
-      <div class="hero-title" style="font-weight: 360; font-size: 1.45rem;"><span id="titleText"></span><span class="dot-holder" id="titleDots">.</span></div>
+      <div class="hero-title" style="font-weight: 360; font-size: 1.45rem;">
+        <span id="titlePrefix"></span>
+        <span class="title-tail"><span id="titleTail"></span><span class="dot-holder" id="titleDots"> .</span></span>
+      </div>
       <span class="subtitle-label">زمان تا شروع وبینار</span>
     </div>
   </div>
@@ -341,18 +352,11 @@ html, body, body * {
   <div class="countdown-wrap">
   <div class="countdown">
     <div class="lock-unit">
-      <div class="wheel-window" id="secondsWheel">
+      <div class="wheel-window" id="daysWheel">
         <div class="wheel-digit current">00</div>
         <div class="wheel-digit next">00</div>
       </div>
-      <div class="label">ثانیه</div>
-    </div>
-    <div class="lock-unit">
-      <div class="wheel-window" id="minutesWheel">
-        <div class="wheel-digit current">00</div>
-        <div class="wheel-digit next">00</div>
-      </div>
-      <div class="label">دقیقه</div>
+      <div class="label">روز</div>
     </div>
     <div class="lock-unit">
       <div class="wheel-window" id="hoursWheel">
@@ -362,11 +366,18 @@ html, body, body * {
       <div class="label">ساعت</div>
     </div>
     <div class="lock-unit">
-      <div class="wheel-window" id="daysWheel">
+      <div class="wheel-window" id="minutesWheel">
         <div class="wheel-digit current">00</div>
         <div class="wheel-digit next">00</div>
       </div>
-      <div class="label">روز</div>
+      <div class="label">دقیقه</div>
+    </div>
+    <div class="lock-unit">
+      <div class="wheel-window" id="secondsWheel">
+        <div class="wheel-digit current">00</div>
+        <div class="wheel-digit next">00</div>
+      </div>
+      <div class="label">ثانیه</div>
     </div>
   </div>
   </div>
@@ -644,11 +655,14 @@ refreshTarget();
 setInterval(refreshTarget, 5 * 60 * 1000);
 
 (function () {
-  const titleTextEl = document.getElementById("titleText");
+  const titlePrefixEl = document.getElementById("titlePrefix");
+  const titleTailEl = document.getElementById("titleTail");
   const el = document.getElementById("titleDots");
-  if (!el || !titleTextEl) return;
+  if (!el || !titlePrefixEl || !titleTailEl) return;
 
-  const base = "در مسیر توسعه باشید";
+  const basePrefix = "در مسیر توسعه";
+  const baseTail = "باشید";
+  const base = basePrefix + " " + baseTail;
   const reduceMotion = typeof window !== "undefined"
     && window.matchMedia
     && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -657,40 +671,41 @@ setInterval(refreshTarget, 5 * 60 * 1000);
     return new Promise((r) => setTimeout(r, ms));
   }
 
-  function getNextTypoMode() {
-    const modes = ["wrong", "missing", "extra"];
+  function getNextTypoMode(key, modes) {
     let last = null;
-    try { last = localStorage.getItem("titleTypoMode"); } catch (_) {}
+    try { last = localStorage.getItem(key); } catch (_) {}
     const options = last ? modes.filter((m) => m !== last) : modes.slice();
     const next = options[Math.floor(Math.random() * options.length)];
-    try { localStorage.setItem("titleTypoMode", next); } catch (_) {}
+    try { localStorage.setItem(key, next); } catch (_) {}
     return next;
   }
 
-  async function typeChars(text, delayMs) {
+  async function typeChars(targetEl, text, delayMs) {
     for (const ch of text) {
-      titleTextEl.textContent += ch;
+      targetEl.textContent += ch;
       await sleep(delayMs);
     }
   }
 
-  async function backspace(count, delayMs) {
+  async function backspace(targetEl, count, delayMs) {
     for (let i = 0; i < count; i++) {
-      titleTextEl.textContent = titleTextEl.textContent.slice(0, -1);
+      targetEl.textContent = targetEl.textContent.slice(0, -1);
       await sleep(delayMs);
     }
   }
 
   async function typeTitleWhenSeen() {
     if (reduceMotion) {
-      titleTextEl.textContent = base;
-      el.textContent = "...";
+      titlePrefixEl.textContent = basePrefix;
+      titleTailEl.textContent = baseTail;
+      el.textContent = " ...";
       return;
     }
 
     // Slower typing (requested) with one typo per load.
-    // Typo mode rotates (stored in localStorage) so it changes style each refresh.
-    const charDelay = 260;
+    // Add a few typos (still always corrected before the final phrase).
+    // Typo modes rotate (stored in localStorage) so each refresh feels different.
+    const charDelay = 340;
     const wordPause = 260;
     const fixPause = 340;
     const bsDelay = 140;
@@ -700,47 +715,53 @@ setInterval(refreshTarget, 5 * 60 * 1000);
     // Give the first countdown render a moment to paint.
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-    titleTextEl.textContent = "";
+    titlePrefixEl.textContent = "";
+    titleTailEl.textContent = "";
+    // Avoid showing dots alone on the second line while tail is empty.
+    el.style.visibility = "hidden";
 
-    const mode = getNextTypoMode();
+    const prefixMode = getNextTypoMode("titleTypoModePrefix", ["wrong", "missing"]);
+    const tailMode = getNextTypoMode("titleTypoModeTail", ["extra", "missing_y", "wrong_last"]);
 
-    if (mode === "extra") {
-      // Extra letter in "باشید": type "باشیدی" then delete the last "ی".
-      // This guarantees we land on the correct "باشید" (not "باشیی").
-      const idx = base.indexOf("باشید");
-      const prefix = base.slice(0, idx);
-      const rest = base.slice(idx + "باشید".length);
-      await typeChars(prefix, charDelay);
-      await sleep(wordPause);
-      await typeChars("باشیدی", charDelay);
+    // Type prefix with a typo + fix in "توسعه".
+    const typoWord = (prefixMode === "wrong") ? "توسغه" : "توسه";
+    const fixWord = "توسعه";
+    await typeChars(titlePrefixEl, "در مسیر ", charDelay);
+    await sleep(wordPause);
+    await typeChars(titlePrefixEl, typoWord, charDelay);
+    await sleep(fixPause);
+    await backspace(titlePrefixEl, typoWord.length, bsDelay);
+    await typeChars(titlePrefixEl, fixWord, charDelay);
+
+    // Now type tail with another typo + fix, while keeping dots glued to the tail.
+    await sleep(wordPause);
+    el.style.visibility = "visible";
+
+    if (tailMode === "extra") {
+      // Extra last letter: "باشیدی" -> backspace -> "باشید"
+      await typeChars(titleTailEl, "باشیدی", charDelay);
       await sleep(fixPause);
-      await backspace(1, bsDelay);
-      await typeChars(rest, charDelay);
-      // Final safety: ensure we always finish on the correct phrase.
-      titleTextEl.textContent = base;
-      return;
+      await backspace(titleTailEl, 1, bsDelay);
+    } else if (tailMode === "missing_y") {
+      // Missing "ی": "باشد" -> backspace -> "ید"
+      await typeChars(titleTailEl, "باشد", charDelay);
+      await sleep(fixPause);
+      await backspace(titleTailEl, 1, bsDelay);
+      await typeChars(titleTailEl, "ید", charDelay);
+    } else {
+      // Wrong last letter: "باشیذ" -> backspace -> "د"
+      await typeChars(titleTailEl, "باشیذ", charDelay);
+      await sleep(fixPause);
+      await backspace(titleTailEl, 1, bsDelay);
+      await typeChars(titleTailEl, "د", charDelay);
     }
 
-    // wrong/missing: apply on "توسعه" so user sees the fix before "باشید" types in.
-    const idx = base.indexOf("توسعه");
-    const prefix = base.slice(0, idx);
-    const rest = base.slice(idx + "توسعه".length);
-    const typoWord = (mode === "wrong") ? "توسغه" : "توسه";
-    const fixWord = "توسعه";
-
-    await typeChars(prefix, charDelay);
-    await sleep(wordPause);
-    await typeChars(typoWord, charDelay);
-    await sleep(fixPause);
-    await backspace(typoWord.length, bsDelay);
-    await typeChars(fixWord, charDelay);
-    await sleep(wordPause);
-    await typeChars(rest, charDelay);
-    // Final safety: ensure we always finish on the correct phrase.
-    titleTextEl.textContent = base;
+    // Final safety: always end on the exact phrase.
+    titlePrefixEl.textContent = basePrefix;
+    titleTailEl.textContent = baseTail;
   }
 
-  const steps = [".", "..", "..."];
+  const steps = [" .", " ..", " ..."];
   let i = 0;
   const dotsTimer = setInterval(function () {
     i = (i + 1) % steps.length;
@@ -794,7 +815,9 @@ setInterval(refreshTarget, 5 * 60 * 1000);
 
   typeTitleWhenSeen().catch(function () {
     // Never block the rest of the page if the animation fails.
-    titleTextEl.textContent = base;
+    titlePrefixEl.textContent = basePrefix;
+    titleTailEl.textContent = baseTail;
+    el.style.visibility = "visible";
   });
 
   // Ensure the dots timer doesn't run for reduced-motion users.
