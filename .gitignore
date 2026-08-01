@@ -1,0 +1,6 @@
+# Bot token - do not commit
+telegram_bot_token.txt
+.env
+
+# Optional
+Orange.pdf

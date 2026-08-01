@@ -1,0 +1,78 @@
+================================================================================
+  ESEMINAR COUNTDOWN - COPY & PASTE REFERENCE
+================================================================================
+
+--- GITHUB ---
+Repo:        https://github.com/CaptainVR1/eseminar-countdown
+Pages (live): https://captainvr1.github.io/eseminar-countdown/
+Countdown:   https://captainvr1.github.io/eseminar-countdown/countdown.html
+
+--- YOUR SERVER (VPS) ---
+IP:          http://141.11.21.113
+Countdown:   http://141.11.21.113/countdown.html
+With webinar: http://141.11.21.113/countdown.html?target=https://eseminar.tv/wb172377
+Slot w1:     http://141.11.21.113/countdown.html?target=w1
+Slot w2:     http://141.11.21.113/countdown.html?target=w2
+Slot w3:     http://141.11.21.113/countdown.html?target=w3
+Slot w4:     http://141.11.21.113/countdown.html?target=w4
+
+--- IFRAME (embed on eseminar.tv or any site) ---
+
+When the iframe is placed on a page like:
+  .../webinar/panel/نام-وبینار/description
+the countdown automatically uses the public webinar URL
+  .../webinar/نام-وبینار
+to load date/time (no ?target= needed).
+
+GitHub Pages (HTTPS) - use this on eseminar.tv. No target needed; date is read from the page automatically:
+<iframe
+  src="https://captainvr1.github.io/eseminar-countdown/countdown.html"
+  width="100%"
+  height="380"
+  style="border:0; border-radius:16px; overflow:hidden; background:transparent;"
+  loading="lazy"
+  referrerpolicy="no-referrer-when-downgrade">
+</iframe>
+
+With a specific slot (w1, w2, w3, w4):
+<iframe
+  src="https://captainvr1.github.io/eseminar-countdown/countdown.html?target=w1"
+  width="100%"
+  height="380"
+  style="border:0; border-radius:16px; overflow:hidden; background:transparent;"
+  loading="lazy"
+  referrerpolicy="no-referrer-when-downgrade">
+</iframe>
+
+Your server (smart URL = reads date from webinar page):
+<iframe
+  src="http://141.11.21.113/countdown.html?target=https://eseminar.tv/wb172377"
+  width="100%"
+  height="380"
+  style="border:0; border-radius:16px; overflow:hidden; background:transparent;"
+  loading="lazy"
+  referrerpolicy="no-referrer-when-downgrade">
+</iframe>
+
+--- OVERRIDE SOCIAL LINKS (add to iframe src) ---
+?site=https://yoursite.com&ig=https://instagram.com/you&tg=https://t.me/you&li=https://linkedin.com/company/you
+
+Example:
+https://captainvr1.github.io/eseminar-countdown/countdown.html?target=w1&site=https://eseminar.tv&tg=https://t.me/eseminar
+
+--- SYNC SERVER → GITHUB (run on VPS to update Pages now) ---
+/srv/Eseminar/sync-to-github.sh
+
+--- UPDATE A SLOT WITH A NEW WEBINAR (run on VPS) ---
+/srv/Eseminar/sync_target.sh w1 "https://eseminar.tv/wb172377"
+/srv/Eseminar/sync_target.sh w2 "https://eseminar.tv/webinar/..."
+(same for w3, w4)
+
+--- TELEGRAM BOT (get iframe from webinar link) ---
+User sends: https://eseminar.tv/wb172675 (or any eseminar.tv webinar link)
+Bot replies: countdown link (HTTPS) + ready-to-use iframe to copy.
+
+Run from terminal:  python3 /srv/Eseminar/telegram_bot.py
+Token file:         /srv/Eseminar/telegram_bot_token.txt (do not commit)
+
+================================================================================

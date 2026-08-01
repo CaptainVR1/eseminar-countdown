@@ -396,8 +396,11 @@ body.is-over .countdown-wrap {
   .btn svg { width: 15px; height: 15px; }
 }
 
-/* Very narrow embeds: the labels go before the layout does. */
-@media (max-width: 380px) {
+/* Very narrow embeds only: the labels go before the layout does. Kept well below
+   the common phone widths (360/390/414) so a normal phone still gets words —
+   note the iframe is narrower than the device, so this triggers earlier than the
+   number suggests. */
+@media (max-width: 336px) {
   .btn span { display: none; }
   .btn { padding: 0.5rem 0.3rem; }
   .btn svg { width: 18px; height: 18px; }
