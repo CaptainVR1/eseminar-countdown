@@ -298,36 +298,109 @@ html, body, body * {
   flex-shrink: 0;
 }
 
+.started {
+  display: none;
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  background: #f0fdf4;
+  color: #15803d;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.started.show {
+  display: block;
+}
+
+/* Once the clock reaches zero the wheels carry no information, so they stop
+   competing with the message that replaced them. */
+body.is-over .countdown-wrap {
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+
+/* The embed is a fixed-height iframe, so this widget cannot grow — whatever it
+   pushes past that height is simply cut off on the page. The old breakpoint
+   stacked the units 2x2 and the buttons 2-up, roughly tripling the height, and
+   on a phone the entire social row was cropped away. Everything below keeps the
+   SAME shape at every width and only shrinks: four units in one row, buttons in
+   one row. */
 @media (max-width: 640px) {
+  body {
+    padding: 0.5rem;
+  }
   .panel {
-    padding: 1.1rem;
+    padding: 0.9rem;
+    border-radius: 16px;
+    width: 100%;
+  }
+  .header {
+    gap: 0.6rem;
+    margin-bottom: 0.6rem;
+  }
+  .logo-wrap {
+    width: 40px;
+    height: 40px;
+  }
+  .brand-meta .hero-title {
+    font-size: 1rem !important;
+  }
+  .brand-meta span.subtitle-label {
+    font-size: 0.7rem;
+  }
+  .subtitle {
+    font-size: 0.85rem;
+    margin-bottom: 0.6rem;
   }
   .countdown {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: clamp(0.55rem, 2.5vw, 0.85rem);
-    justify-content: initial;
-    padding: clamp(0.75rem, 3vw, 1rem);
+    gap: 0.4rem;
+    padding: 0.55rem;
   }
   .lock-unit {
-    flex: initial;
-    width: 100%;
     min-width: 0;
   }
+  .wheel-window {
+    height: clamp(2.6rem, 13vw, 3.4rem);
+    border-radius: 10px;
+  }
+  .wheel-digit {
+    font-size: clamp(1.35rem, 8vw, 2rem);
+  }
+  .label {
+    margin-top: 0.3rem;
+    font-size: 0.62rem;
+    letter-spacing: 0.04em;
+  }
   .actions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: clamp(0.5rem, 2.4vw, 0.75rem);
-    margin-top: 1rem;
+    margin-top: 0.7rem;
+    gap: 0.35rem;
+    flex-wrap: nowrap;
   }
-  .btn span { display: none; }
   .btn {
-    width: 100%;
-    min-height: 50px;
-    padding: 0.65rem;
-    border-radius: 14px;
+    flex: 1 1 0;
+    min-width: 0;
+    gap: 0.25rem;
+    padding: 0.45rem 0.3rem;
+    border-radius: 10px;
+    font-size: 0.68rem;
   }
-  .btn svg { width: 22px; height: 22px; }
+  .btn span {
+    /* Kept, unlike before: a row of unlabelled glyphs is not a call to action.
+       Allowed to truncate rather than push the row onto a second line. */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .btn svg { width: 15px; height: 15px; }
+}
+
+/* Very narrow embeds: the labels go before the layout does. */
+@media (max-width: 380px) {
+  .btn span { display: none; }
+  .btn { padding: 0.5rem 0.3rem; }
+  .btn svg { width: 18px; height: 18px; }
 }
 </style>
 </head>
@@ -341,43 +414,47 @@ html, body, body * {
     <div class="brand-meta">
       <div class="hero-title" style="font-weight: 360; font-size: 1.45rem;">
         <span id="titlePrefix"></span>
-        <span class="title-tail"><span id="titleTail"></span><span class="dot-holder" id="titleDots"> .</span></span>
+        <span class="title-tail"><span id="titleTail"></span><span class="dot-holder" id="titleDots"></span></span>
       </div>
       <span class="subtitle-label">زمان تا شروع وبینار</span>
     </div>
   </div>
   <p class="subtitle" id="subtitle"></p>
-  <p class="alert" id="errorMessage">امکان خواندن این صفحه وبینار وجود ندارد.</p>
+  <p class="alert" id="errorMessage">زمان این وبینار خوانده نشد.</p>
+  <p class="started" id="startedMessage">وبینار شروع شده است</p>
 
   <div class="countdown-wrap">
+  <!-- Order matters: the row is RTL, so the FIRST child sits furthest right.
+       Days must lead, or the widget reads ثانیه:دقیقه:ساعت:روز to a Persian
+       reader, which is how it shipped. -->
   <div class="countdown">
     <div class="lock-unit">
-      <div class="wheel-window" id="secondsWheel">
-        <div class="wheel-digit current">00</div>
-        <div class="wheel-digit next">00</div>
+      <div class="wheel-window" id="daysWheel">
+        <div class="wheel-digit current">۰۰</div>
+        <div class="wheel-digit next">۰۰</div>
       </div>
-      <div class="label">ثانیه</div>
-    </div>
-    <div class="lock-unit">
-      <div class="wheel-window" id="minutesWheel">
-        <div class="wheel-digit current">00</div>
-        <div class="wheel-digit next">00</div>
-      </div>
-      <div class="label">دقیقه</div>
+      <div class="label">روز</div>
     </div>
     <div class="lock-unit">
       <div class="wheel-window" id="hoursWheel">
-        <div class="wheel-digit current">00</div>
-        <div class="wheel-digit next">00</div>
+        <div class="wheel-digit current">۰۰</div>
+        <div class="wheel-digit next">۰۰</div>
       </div>
       <div class="label">ساعت</div>
     </div>
     <div class="lock-unit">
-      <div class="wheel-window" id="daysWheel">
-        <div class="wheel-digit current">00</div>
-        <div class="wheel-digit next">00</div>
+      <div class="wheel-window" id="minutesWheel">
+        <div class="wheel-digit current">۰۰</div>
+        <div class="wheel-digit next">۰۰</div>
       </div>
-      <div class="label">روز</div>
+      <div class="label">دقیقه</div>
+    </div>
+    <div class="lock-unit">
+      <div class="wheel-window" id="secondsWheel">
+        <div class="wheel-digit current">۰۰</div>
+        <div class="wheel-digit next">۰۰</div>
+      </div>
+      <div class="label">ثانیه</div>
     </div>
   </div>
   </div>
@@ -385,28 +462,33 @@ html, body, body * {
   <div class="actions">
     <a class="btn" id="btnInstagram" href="#" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
-      <span>Instagram</span>
+      <span>اینستاگرام</span>
     </a>
     <a class="btn" id="btnWebsite" href="#" target="_blank" rel="noopener noreferrer" aria-label="Website">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-      <span>Website</span>
+      <span>وب‌سایت</span>
     </a>
     <a class="btn" id="btnTelegram" href="#" target="_blank" rel="noopener noreferrer" aria-label="Telegram">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
-      <span>Telegram</span>
+      <span>تلگرام</span>
     </a>
     <a class="btn" id="btnLinkedIn" href="#" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
-      <span>LinkedIn</span>
+      <span>لینکدین</span>
     </a>
   </div>
 
 </main>
 
 <script>
-let target = new Date("2026-03-01T00:00:00Z").getTime();
+// No date until one is proven. The old code seeded a hardcoded March 2026 and
+// counted down to it, so a failed lookup was indistinguishable from a real
+// webinar that had already passed.
+let target = 0;
+let targetResolved = false;
 const subtitleEl = document.getElementById("subtitle");
 const errorMessageEl = document.getElementById("errorMessage");
+const startedEl = document.getElementById("startedMessage");
 const allowedTargets = new Set(["w1", "w2", "w3", "w4"]);
 
 var urlParams = new URLSearchParams(window.location.search);
@@ -415,6 +497,7 @@ if (fixedTime) {
   var parsed = Date.parse(fixedTime);
   if (!Number.isNaN(parsed)) {
     target = parsed;
+    targetResolved = true;
     var d = new Date(target);
     subtitleEl.innerText = d.toLocaleDateString("fa-IR", {
       weekday: "long", year: "numeric", month: "long", day: "numeric",
@@ -455,12 +538,20 @@ if (rawTargetParam && /^https?:\/\//i.test(rawTargetParam)) {
   rawTargetParam = normalizeWebinarUrl(rawTargetParam);
 }
 
-const smartApi = new URLSearchParams(window.location.search).get("smartApi") || "/api/webinar-target";
+// Everything this page fetches must be addressed RELATIVE TO THIS FILE, never to
+// the site root. On GitHub Pages the repo is served under /eseminar-countdown/,
+// so a root-absolute "/targets/w1.json" resolved to captainvr1.github.io/targets/
+// and 404'd — which silently dropped the widget back to the hardcoded fallback
+// date and made every digit read 00 on the one URL eseminar can actually embed.
+// The smart API had the same problem and additionally only exists on the VPS, so
+// it is now opt-in via ?smartApi= rather than a default that cannot resolve.
+const BASE_DIR = window.location.href.split("?")[0].replace(/[^/]*$/, "");
+const smartApi = urlParams.get("smartApi") || "";
 const isWebinarUrl = rawTargetParam && /^https?:\/\//i.test(rawTargetParam);
 const targetId = !isWebinarUrl && allowedTargets.has(rawTargetParam) ? rawTargetParam : "w1";
 const targetJsonUrl = isWebinarUrl
-  ? `${smartApi}?url=${encodeURIComponent(rawTargetParam)}`
-  : `/targets/${targetId}.json`;
+  ? (smartApi ? `${smartApi}?url=${encodeURIComponent(rawTargetParam)}` : "")
+  : `${BASE_DIR}targets/${targetId}.json`;
 
 var JALALI_MONTHS = { "فروردین":1,"اردیبهشت":2,"خرداد":3,"تیر":4,"مرداد":5,"شهریور":6,"مهر":7,"آبان":8,"آذر":9,"دی":10,"بهمن":11,"اسفند":12 };
 function jalaliToGregorian(jy, jm, jd) {
@@ -494,8 +585,17 @@ function parseWebinarPageHtml(html, webinarUrl) {
   return { target_iso: iso, webinar_url: webinarUrl };
 }
 
+// The date line is rendered by Intl in fa-IR and comes out in Persian digits, so
+// Latin numerals in the wheels beside it looked like a different widget. The
+// wheel animation compares strings, and these are stable per value, so it is
+// safe to convert here rather than at every call site.
+var FA_DIGITS = "۰۱۲۳۴۵۶۷۸۹";
+function toFaDigits(text) {
+  return String(text).replace(/[0-9]/g, function (d) { return FA_DIGITS[+d]; });
+}
+
 function pad(value) {
-  return String(value).padStart(2, "0");
+  return toFaDigits(String(value).padStart(2, "0"));
 }
 
 function createWheel(id) {
@@ -585,6 +685,14 @@ function renderCountdown(instant) {
   setWheelValue(wheels.hours, pad(h), instant);
   setWheelValue(wheels.minutes, pad(m), instant);
   setWheelValue(wheels.seconds, pad(s), instant);
+
+  // Four zeros used to mean two different things — "the webinar is starting now"
+  // and "the date never loaded". Say which, so a stale embed is obvious instead
+  // of looking like a webinar permanently on the verge of beginning.
+  document.body.classList.toggle("is-over", diff === 0);
+  if (startedEl) {
+    startedEl.classList.toggle("show", diff === 0 && targetResolved);
+  }
 }
 
 function renderTargetDate(ms) {
@@ -611,14 +719,16 @@ async function refreshTarget() {
     return;
   }
   if (isWebinarUrl) {
-    try {
-      const res = await fetch(targetJsonUrl + "?t=" + Date.now(), { cache: "no-store" });
-      if (res.ok) {
-        const data = await res.json();
-        const next = Date.parse(data.target_iso);
-        if (!Number.isNaN(next)) { target = next; renderTargetDate(target); return; }
-      }
-    } catch (_) {}
+    if (targetJsonUrl) {
+      try {
+        const res = await fetch(targetJsonUrl + "&_=" + Date.now(), { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          const next = Date.parse(data.target_iso);
+          if (!Number.isNaN(next)) { target = next; targetResolved = true; renderTargetDate(target); return; }
+        }
+      } catch (_) {}
+    }
     try {
       var proxy = "https://api.allorigins.win/raw?url=" + encodeURIComponent(rawTargetParam);
       const r = await fetch(proxy, { cache: "no-store" });
@@ -626,7 +736,7 @@ async function refreshTarget() {
       var data = parseWebinarPageHtml(html, rawTargetParam);
       if (data && data.target_iso) {
         var next = Date.parse(data.target_iso);
-        if (!Number.isNaN(next)) { target = next; renderTargetDate(target); return; }
+        if (!Number.isNaN(next)) { target = next; targetResolved = true; renderTargetDate(target); return; }
       }
     } catch (_) {}
   } else {
@@ -637,6 +747,7 @@ async function refreshTarget() {
       const next = Date.parse(data.target_iso);
       if (Number.isNaN(next)) throw new Error("Invalid target_iso");
       target = next;
+      targetResolved = true;
       renderTargetDate(target);
     } catch (err) {
       errorMessageEl.classList.add("show");
